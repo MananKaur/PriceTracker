@@ -17,7 +17,7 @@ async function checkPrice(page) {
     let html = await page.evaluate(() => document.body.innerHTML);
     // console.log(html);
 
-    $('#priceblock_dealprice', html).each(function () {
+    $('#priceblock_ourprice', html).each(function () {
         let dollarPrice = $(this).text();
         // console.log(dollarPrice);
         let currentPrice = Number(dollarPrice.replace(/[^0-9.-]+/g, ""));
