@@ -1,65 +1,71 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED='0'
 const puppeteer = require('puppeteer');
 const $ = require('cheerio');
 const CronJob = require('cron').CronJob;
 const nodemailer = require('nodemailer');
 
-const url = 'https://www.amazon.com/Sony-Noise-Cancelling-Headphones-WH1000XM3/dp/B07G4MNFS1/';
+const url = 'https://www.amazon.in/Karin-Mini-Box-colours-Blender/dp/B07F1CG21K';
+const belowthis = 4420;
 
 async function configureBrowser() {
-    const browser = await puppeteer.launch();
-    const page = await browser.newPage();
-    await page.goto(url);
-    return page;
+  const browser = await puppeteer.launch();
+  const page = await browser.newPage();
+  await page.goto(url);
+  return page;
 }
 
 async function checkPrice(page) {
-    await page.reload();
-    let html = await page.evaluate(() => document.body.innerHTML);
-    // console.log(html);
+  await page.reload();
+  let html = await page.evaluate(() => document.body.innerHTML);
+  // console.log(html);
 
-    $('#priceblock_ourprice', html).each(function () {
-        let dollarPrice = $(this).text();
-        // console.log(dollarPrice);
-        let currentPrice = Number(dollarPrice.replace(/[^0-9.-]+/g, ""));
+  $('#priceblock_ourprice', html).each(function () {
+    let Price = $(this).text();
 
-        if (currentPrice < 300) {
-            console.log("BUY!!!! " + currentPrice);
-            sendNotification(currentPrice);
-        }
-    });
+    let currentPrice = Number(Price.replace(/[^0-9.-]+/g, ""));
+
+    if (currentPrice <= belowthis) {
+      console.log("BUY!!!! " + currentPrice);
+      try {
+        sendNotification(currentPrice);
+      } catch (e) {
+        console.log(e);
+      }
+    }
+  });
 }
 
 async function startTracking() {
-    const page = await configureBrowser();
+  const page = await configureBrowser();
 
-    let job = new CronJob('* */30 * * * *', function () { //runs every 30 minutes in this config
-        checkPrice(page);
-    }, null, true, null, null, true);
-    job.start();
+  let job = new CronJob('*/60 * * * * *', function () { 
+    checkPrice(page);
+  }, null, true, null, null, true);
+  job.start();
 }
 
 async function sendNotification(price) {
 
-    let transporter = nodemailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: '*****@gmail.com',
-            pass: '*****'
-        }
-    });
+  let transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: '***@gmail.com',
+      pass: '****'
+    }
+  });
 
-    let textToSend = 'Price dropped to ' + price;
-    let htmlText = `<a href=\"${url}\">Link</a>`;
+  let textToSend = 'Price dropped to ' + price;
+  let htmlText = `<a href=\"${url}\">Link</a>`;
 
-    let info = await transporter.sendMail({
-        from: '"Price Tracker" <*****@gmail.com>',
-        to: "*****@gmail.com",
-        subject: 'Price dropped to ' + price,
-        text: textToSend,
-        html: htmlText
-    });
+   await transporter.sendMail({
+    from: '"Price Tracker" <****@.com>',
+    to: "***@gmail.com",
+    subject: 'Price dropped to ' + price,
+    text: textToSend,
+    html: htmlText
+  });
 
-    console.log("Message sent: %s", info.messageId);
+ // console.log("Message sent: %s", info.messageId);
 }
 
 startTracking();
